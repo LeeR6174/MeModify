@@ -1,16 +1,47 @@
-# React + Vite
+# MeModify
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+한일 번역 텍스트(SRT/TXT)에서 한국어 행만 제거하고 일본어와 타임스탬프만 남겨주는 텍스트 가공 도구입니다.
 
-Currently, two official plugins are available:
+##  주요 기능
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **한국어 행 자동 제거**: 타임스탬프 바로 뒤에 오는 한국어 대사 행을 자동으로 식별하여 제거합니다.
+- **데이터 보존**: 타임스탬프, 일본어 번역, 인덱스 번호, 줄바꿈 등은 원본 그대로 유지합니다.
+- **예외 처리**: `의역：` 또는 `직역：`으로 시작하는 행은 한국어라도 삭제하지 않고 보존합니다.
+- **실시간 편집**: 가공된 결과를 화면에서 직접 수정할 수 있으며, 수정된 상태로 바로 다운로드하거나 복사할 수 있습니다.
+- **프라이버시 보호**: 모든 처리는 사용자의 브라우저 내에서 로컬로 수행되며, 서버로 데이터를 전송하지 않습니다.
+- **데스크톱 앱**: 설치가 필요 없는 단일 실행 파일(.exe)로 로컬 환경에서 간편하게 사용할 수 있습니다.
 
-## React Compiler
+## 사용 방법
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. `MeModify.exe`를 실행합니다.
+2. 가공할 `.txt` 또는 `.srt` 파일을 화면으로 드래그 앤 드롭하거나 클릭하여 업로드합니다.
+3. 삭제된 행(빨간색 취소선)과 남은 행을 확인합니다.
+4. 필요시 텍스트를 직접 클릭하여 수정합니다.
+5. `다운로드` 버튼을 눌러 결과물을 저장하거나 `클립보드` 버튼으로 복사합니다.
 
-## Expanding the ESLint configuration
+## 기술 스택
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend**: React, Vite
+- **Desktop**: Electron
+- **Icons**: Lucide React
+- **Styling**: Vanilla CSS (Glassmorphism design)
+
+## 빌드 및 실행
+
+```bash
+# 의존성 설치
+npm install
+
+# 개발 모드 실행 (Vite)
+npm run dev
+
+# 데스크톱 앱 개발 모드 실행
+npm run electron:dev
+
+# 데스크톱 앱 빌드 (Portable .exe)
+npm run electron:build
+```
+
+---
+
+© 2026 MeModify - Precision Subtitle Tool
