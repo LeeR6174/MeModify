@@ -224,6 +224,22 @@ button {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.editable {
+  outline: none;
+  cursor: text;
+  border-radius: 4px;
+  padding: 0 0.5rem;
+  margin-left: -0.5rem;
+  transition: all 0.2s;
+  min-height: 1.2em;
+}
+
+.editable:focus {
+  background: rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 1px var(--primary);
+  color: white;
+}
+
 .inline-icon {
   margin-right: 0.75rem;
   opacity: 0.8;

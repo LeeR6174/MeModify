@@ -44,38 +44,33 @@ function App() {
     const newDiff = []
 
     let i = 0
+    let processedIdxCounter = 0
     while (i < lines.length) {
       const line = lines[i]
       
       if (isTimestamp(line)) {
-        // Keep timestamp
         newProcessedLines.push(line)
-        newDiff.push({ type: 'normal', text: line })
+        newDiff.push({ type: 'normal', text: line, processedIdx: processedIdxCounter++ })
         
-        // The line immediately after a timestamp is the one to evaluate (Korean)
         if (i + 1 < lines.length) {
           const nextLine = lines[i + 1]
           
           if (isException(nextLine)) {
-            // It's an exception, keep it and don't skip the next
             newProcessedLines.push(nextLine)
-            newDiff.push({ type: 'normal', text: nextLine })
+            newDiff.push({ type: 'normal', text: nextLine, processedIdx: processedIdxCounter++ })
             i += 2 
           } else if (nextLine.trim() === '') {
-            // Unusual but keep empty line
             newProcessedLines.push(nextLine)
-            newDiff.push({ type: 'normal', text: nextLine })
+            newDiff.push({ type: 'normal', text: nextLine, processedIdx: processedIdxCounter++ })
             i += 2
           } else {
-            // Delete this line (Korean)
             newDiff.push({ type: 'removed', text: nextLine })
             
-            // The line after the deleted one is Japanese (Keep it)
             if (i + 2 < lines.length) {
               const followingLine = lines[i + 2]
               newProcessedLines.push(followingLine)
-              newDiff.push({ type: 'normal', text: followingLine })
-              i += 3 // Move past Timestamp, Korean, and Japanese
+              newDiff.push({ type: 'normal', text: followingLine, processedIdx: processedIdxCounter++ })
+              i += 3
             } else {
               i += 2
             }
@@ -84,9 +79,8 @@ function App() {
           i += 1
         }
       } else {
-        // Index lines, empty lines, or any other content - keep it exactly as is
         newProcessedLines.push(line)
-        newDiff.push({ type: 'normal', text: line })
+        newDiff.push({ type: 'normal', text: line, processedIdx: processedIdxCounter++ })
         i += 1
       }
     }
@@ -94,6 +88,18 @@ function App() {
     setProcessedLines(newProcessedLines)
     setDiffLines(newDiff)
     setIsProcessing(false)
+  }
+
+  const handleLineEdit = (diffIdx, processedIdx, newText) => {
+    // Update diffLines for UI
+    const updatedDiff = [...diffLines]
+    updatedDiff[diffIdx].text = newText
+    setDiffLines(updatedDiff)
+
+    // Update processedLines for export
+    const updatedProcessed = [...processedLines]
+    updatedProcessed[processedIdx] = newText
+    setProcessedLines(updatedProcessed)
   }
 
   const handleDownload = () => {
@@ -219,10 +225,27 @@ function App() {
               {diffLines.map((line, idx) => (
                 <div key={idx} className={`diff-line ${line.type === 'removed' ? 'line-removed' : 'line-normal'}`}>
                   <span className="line-number">{idx + 1}</span>
-                  <span className="line-content">
-                    {line.type === 'removed' && <Trash2 size={12} className="inline-icon" />}
-                    {line.text}
-                  </span>
+                  {line.type === 'removed' ? (
+                    <span className="line-content">
+                      <Trash2 size={12} className="inline-icon" />
+                      {line.text}
+                    </span>
+                  ) : (
+                    <div 
+                      className="line-content editable"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleLineEdit(idx, line.processedIdx, e.target.innerText)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          e.target.blur()
+                        }
+                      }}
+                    >
+                      {line.text}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
