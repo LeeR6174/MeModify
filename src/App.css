@@ -232,6 +232,37 @@ button {
   margin-left: -0.5rem;
   transition: all 0.2s;
   min-height: 1.2em;
+  flex: 1;
+}
+
+.line-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: 1rem;
+}
+
+.btn-line-delete {
+  opacity: 0;
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.line-normal:hover .btn-line-delete {
+  opacity: 0.5;
+}
+
+.btn-line-delete:hover {
+  opacity: 1 !important;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .editable:focus {

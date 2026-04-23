@@ -102,6 +102,26 @@ function App() {
     setProcessedLines(updatedProcessed)
   }
 
+  const handleLineDelete = (diffIdx, processedIdx) => {
+    // Remove from processedLines
+    const updatedProcessed = [...processedLines]
+    updatedProcessed.splice(processedIdx, 1)
+    setProcessedLines(updatedProcessed)
+
+    // Mark as removed in diffLines and update subsequent indices
+    const updatedDiff = [...diffLines]
+    updatedDiff[diffIdx] = { ...updatedDiff[diffIdx], type: 'removed', processedIdx: null }
+    
+    // Update following lines' processedIdx
+    for (let j = diffIdx + 1; j < updatedDiff.length; j++) {
+      if (updatedDiff[j].processedIdx !== undefined && updatedDiff[j].processedIdx !== null) {
+        updatedDiff[j].processedIdx -= 1
+      }
+    }
+    
+    setDiffLines(updatedDiff)
+  }
+
   const handleDownload = () => {
     const content = processedLines.join('\n')
     const blob = new Blob([content], { type: 'text/plain' })
@@ -231,19 +251,28 @@ function App() {
                       {line.text}
                     </span>
                   ) : (
-                    <div 
-                      className="line-content editable"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleLineEdit(idx, line.processedIdx, e.target.innerText)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          e.target.blur()
-                        }
-                      }}
-                    >
-                      {line.text}
+                    <div className="line-content-wrapper">
+                      <div 
+                        className="line-content editable"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => handleLineEdit(idx, line.processedIdx, e.target.innerText)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            e.target.blur()
+                          }
+                        }}
+                      >
+                        {line.text}
+                      </div>
+                      <button 
+                        className="btn-line-delete" 
+                        onClick={() => handleLineDelete(idx, line.processedIdx)}
+                        title="この行を削除"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   )}
                 </div>
