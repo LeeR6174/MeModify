@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, Download, Trash2, FileText, CheckCircle2, ChevronRight, X, Copy, Check } from 'lucide-react'
+import { Upload, Download, Trash2, FileText, CheckCircle2, ChevronRight, X, Copy, Check, RotateCcw } from 'lucide-react'
 import './App.css'
 
 function App() {
@@ -12,6 +12,13 @@ function App() {
   const [copying, setCopying] = useState(false)
   const fileInputRef = useRef(null)
   const scrollRef = useRef(null)
+  
+  useEffect(() => {
+    const updatedProcessed = diffLines
+      .filter(line => line.type === 'normal')
+      .map(line => line.text)
+    setProcessedLines(updatedProcessed)
+  }, [diffLines])
 
   const handleFileUpload = (e) => {
     const uploadedFile = e.target.files[0]
@@ -35,90 +42,67 @@ function App() {
     return line.trim().startsWith('의역：') || line.trim().startsWith('직역：')
   }
 
+  const hasHangul = (text) => {
+    return /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/.test(text)
+  }
+
   const processText = (text) => {
     setIsProcessing(true)
     const lines = text.split(/\r?\n/)
     setOriginalLines(lines)
 
-    const newProcessedLines = []
     const newDiff = []
 
     let i = 0
-    let processedIdxCounter = 0
     while (i < lines.length) {
       const line = lines[i]
       
       if (isTimestamp(line)) {
-        newProcessedLines.push(line)
-        newDiff.push({ type: 'normal', text: line, processedIdx: processedIdxCounter++ })
+        newDiff.push({ type: 'normal', text: line })
+        i++
         
-        if (i + 1 < lines.length) {
-          const nextLine = lines[i + 1]
-          
-          if (isException(nextLine)) {
-            newProcessedLines.push(nextLine)
-            newDiff.push({ type: 'normal', text: nextLine, processedIdx: processedIdxCounter++ })
-            i += 2 
-          } else if (nextLine.trim() === '') {
-            newProcessedLines.push(nextLine)
-            newDiff.push({ type: 'normal', text: nextLine, processedIdx: processedIdxCounter++ })
-            i += 2
-          } else {
-            newDiff.push({ type: 'removed', text: nextLine })
-            
-            if (i + 2 < lines.length) {
-              const followingLine = lines[i + 2]
-              newProcessedLines.push(followingLine)
-              newDiff.push({ type: 'normal', text: followingLine, processedIdx: processedIdxCounter++ })
-              i += 3
-            } else {
-              i += 2
-            }
+        // Process content lines until next timestamp, empty line, or index line
+        // SRT blocks usually end with an empty line.
+        while (i < lines.length && !isTimestamp(lines[i]) && lines[i].trim() !== '') {
+          // Check if next line is an index line (just a number)
+          // If it's a number followed by a timestamp line, it's a new block.
+          if (/^\d+$/.test(lines[i].trim()) && i + 1 < lines.length && isTimestamp(lines[i+1])) {
+            break;
           }
-        } else {
-          i += 1
+
+          const contentLine = lines[i]
+          if (hasHangul(contentLine) && !isException(contentLine)) {
+            newDiff.push({ type: 'removed', text: contentLine })
+          } else {
+            newDiff.push({ type: 'normal', text: contentLine })
+          }
+          i++
         }
       } else {
-        newProcessedLines.push(line)
-        newDiff.push({ type: 'normal', text: line, processedIdx: processedIdxCounter++ })
-        i += 1
+        newDiff.push({ type: 'normal', text: line })
+        i++
       }
     }
 
-    setProcessedLines(newProcessedLines)
     setDiffLines(newDiff)
     setIsProcessing(false)
   }
 
-  const handleLineEdit = (diffIdx, processedIdx, newText) => {
-    // Update diffLines for UI
+  const handleLineEdit = (idx, newText) => {
     const updatedDiff = [...diffLines]
-    updatedDiff[diffIdx].text = newText
+    updatedDiff[idx].text = newText
     setDiffLines(updatedDiff)
-
-    // Update processedLines for export
-    const updatedProcessed = [...processedLines]
-    updatedProcessed[processedIdx] = newText
-    setProcessedLines(updatedProcessed)
   }
 
-  const handleLineDelete = (diffIdx, processedIdx) => {
-    // Remove from processedLines
-    const updatedProcessed = [...processedLines]
-    updatedProcessed.splice(processedIdx, 1)
-    setProcessedLines(updatedProcessed)
-
-    // Mark as removed in diffLines and update subsequent indices
+  const handleLineDelete = (idx) => {
     const updatedDiff = [...diffLines]
-    updatedDiff[diffIdx] = { ...updatedDiff[diffIdx], type: 'removed', processedIdx: null }
-    
-    // Update following lines' processedIdx
-    for (let j = diffIdx + 1; j < updatedDiff.length; j++) {
-      if (updatedDiff[j].processedIdx !== undefined && updatedDiff[j].processedIdx !== null) {
-        updatedDiff[j].processedIdx -= 1
-      }
-    }
-    
+    updatedDiff[idx] = { ...updatedDiff[idx], type: 'removed' }
+    setDiffLines(updatedDiff)
+  }
+
+  const handleLineRestore = (idx) => {
+    const updatedDiff = [...diffLines]
+    updatedDiff[idx] = { ...updatedDiff[idx], type: 'normal' }
     setDiffLines(updatedDiff)
   }
 
@@ -128,7 +112,20 @@ function App() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `processed_${file.name}`
+    
+    // File name: original_fixed.ext
+    const originalName = file.name
+    const lastDotIndex = originalName.lastIndexOf('.')
+    let newName
+    if (lastDotIndex === -1) {
+      newName = `${originalName}_fixed`
+    } else {
+      const name = originalName.substring(0, lastDotIndex)
+      const ext = originalName.substring(lastDotIndex)
+      newName = `${name}_fixed${ext}`
+    }
+    
+    a.download = newName
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -246,17 +243,26 @@ function App() {
                 <div key={idx} className={`diff-line ${line.type === 'removed' ? 'line-removed' : 'line-normal'}`}>
                   <span className="line-number">{idx + 1}</span>
                   {line.type === 'removed' ? (
-                    <span className="line-content">
-                      <Trash2 size={12} className="inline-icon" />
-                      {line.text}
-                    </span>
+                    <div className="line-content-wrapper">
+                      <span className="line-content">
+                        <Trash2 size={12} className="inline-icon" />
+                        {line.text}
+                      </span>
+                      <button 
+                        className="btn-line-restore" 
+                        onClick={() => handleLineRestore(idx)}
+                        title="この行を復元"
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                    </div>
                   ) : (
                     <div className="line-content-wrapper">
                       <div 
                         className="line-content editable"
                         contentEditable
                         suppressContentEditableWarning
-                        onBlur={(e) => handleLineEdit(idx, line.processedIdx, e.target.innerText)}
+                        onBlur={(e) => handleLineEdit(idx, e.target.innerText)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault()
@@ -268,7 +274,7 @@ function App() {
                       </div>
                       <button 
                         className="btn-line-delete" 
-                        onClick={() => handleLineDelete(idx, line.processedIdx)}
+                        onClick={() => handleLineDelete(idx)}
                         title="この行を削除"
                       >
                         <Trash2 size={14} />
