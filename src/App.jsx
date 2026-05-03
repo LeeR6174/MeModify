@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Upload, Download, Trash2, FileText, CheckCircle2, ChevronRight, X, Copy, Check, RotateCcw } from 'lucide-react'
+import { Upload, Download, Trash2, FileText, CheckCircle2, ChevronRight, X, Copy, Check, RotateCcw, Maximize2, Minimize2, AlertCircle } from 'lucide-react'
 import './App.css'
 
 function App() {
@@ -12,6 +12,9 @@ function App() {
   const [copying, setCopying] = useState(false)
   const fileInputRef = useRef(null)
   const scrollRef = useRef(null)
+  const containerRef = useRef(null)
+  const scrollPosRef = useRef(0)
+  const [isFullScreen, setIsFullScreen] = useState(false)
   
   useEffect(() => {
     const updatedProcessed = diffLines
@@ -19,6 +22,20 @@ function App() {
       .map(line => line.text)
     setProcessedLines(updatedProcessed)
   }, [diffLines])
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement)
+      // Restore scroll position after a short delay to allow layout to settle
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollPosRef.current
+        }
+      }, 50)
+    }
+    document.addEventListener('fullscreenchange', handleFullScreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange)
+  }, [])
 
   const handleFileUpload = (e) => {
     const uploadedFile = e.target.files[0]
@@ -39,7 +56,8 @@ function App() {
   }
 
   const isException = (line) => {
-    return line.trim().startsWith('의역：') || line.trim().startsWith('직역：')
+    const keywords = ['의역', '직역', '순화']
+    return keywords.some(keyword => line.includes(keyword))
   }
 
   const hasHangul = (text) => {
@@ -71,15 +89,17 @@ function App() {
           }
 
           const contentLine = lines[i]
-          if (hasHangul(contentLine) && !isException(contentLine)) {
+          const isExp = isException(contentLine)
+          if (hasHangul(contentLine) && !isExp) {
             newDiff.push({ type: 'removed', text: contentLine })
           } else {
-            newDiff.push({ type: 'normal', text: contentLine })
+            newDiff.push({ type: 'normal', text: contentLine, isException: isExp })
           }
           i++
         }
       } else {
-        newDiff.push({ type: 'normal', text: line })
+        const isExp = isException(line)
+        newDiff.push({ type: 'normal', text: line, isException: isExp })
         i++
       }
     }
@@ -139,6 +159,17 @@ function App() {
     setTimeout(() => setCopying(false), 2000)
   }
 
+  const toggleFullScreen = () => {
+    if (scrollRef.current) {
+      scrollPosRef.current = scrollRef.current.scrollTop
+    }
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
+  }
+
   const reset = () => {
     setFile(null)
     setOriginalLines([])
@@ -149,11 +180,11 @@ function App() {
   }
 
   return (
-    <div className="container">
+    <div className="container" ref={containerRef}>
       <header className="animate-fade-in main-header">
         <div className="logo-badge">Me</div>
         <h1>MeModify</h1>
-        <p className="subtitle">Subtitle Korean Line Remover <span className="version-tag">v1.0</span></p>
+        <p className="subtitle">字幕韓国語行削除ツール <span className="version-tag">v1.0</span></p>
       </header>
 
       <main>
@@ -207,9 +238,13 @@ function App() {
                   <span className="filename">{file.name}</span>
                   <span className="file-size">{(file.size / 1024).toFixed(1)} KB</span>
                 </div>
-                <span className="status-tag">Ready</span>
+                <span className="status-tag">解析完了</span>
               </div>
               <div className="actions">
+                <button className="btn-secondary" onClick={toggleFullScreen} title="フル画面モード">
+                  {isFullScreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                  {isFullScreen ? '解除' : 'フル画面'}
+                </button>
                 <button className="btn-secondary" onClick={reset}>
                   <X size={18} /> 閉じる
                 </button>
@@ -226,7 +261,7 @@ function App() {
             <div className="diff-stats">
               <div className="stat-item">
                 <span className="stat-label">元データ:</span>
-                <span className="stat-value">{originalLines.length} 行</span>
+                <span className="stat-value text-primary">{originalLines.length} 行</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">削除済み:</span>
@@ -240,7 +275,7 @@ function App() {
 
             <div className="diff-content" ref={scrollRef}>
               {diffLines.map((line, idx) => (
-                <div key={idx} className={`diff-line ${line.type === 'removed' ? 'line-removed' : 'line-normal'}`}>
+                <div key={idx} className={`diff-line ${line.type === 'removed' ? 'line-removed' : 'line-normal'} ${line.isException ? 'line-exception' : ''}`}>
                   <span className="line-number">{idx + 1}</span>
                   {line.type === 'removed' ? (
                     <div className="line-content-wrapper">
@@ -258,6 +293,11 @@ function App() {
                     </div>
                   ) : (
                     <div className="line-content-wrapper">
+                      {line.isException && (
+                        <span className="exception-badge" contentEditable={false}>
+                          <AlertCircle size={12} /> 要確認
+                        </span>
+                      )}
                       <div 
                         className="line-content editable"
                         contentEditable
@@ -290,7 +330,7 @@ function App() {
 
       <footer className="animate-fade-in">
         <div className="footer-content">
-          <p>&copy; 2026 MeModify • Local First • Privacy Focused</p>
+          <p>&copy; 2026 MeModify • ローカル処理 • プライバシー保護</p>
         </div>
       </footer>
     </div>
