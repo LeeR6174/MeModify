@@ -39,9 +39,19 @@ npm run dev
 # デスクトップアプリの開発モード実行
 npm run electron:dev
 
-# デスクトップアプリのビルド (Portable .exe)
+# デスクトップアプリのビルド（フォルダ配布）
 npm run electron:build
 ```
+
+ビルド後の `release/win-unpacked` フォルダ全体を別の Windows PC にコピーし、
+中にある `MeModify.exe` を実行してください。`MeModify.exe` だけを取り出したり、
+フォルダ内の DLL・`locales`・`resources` を削除したりしないでください。
+
+Smart App Control は、発行元が確認できない未署名の実行ファイルをブロックすることがあります。
+このリポジトリにはコード署名証明書を含めていないため、配布先でブロックされる場合は、
+公開用の証明書で `MeModify.exe` と同梱 DLL を署名してから配布してください。
+フォルダ配布への変更は自己解凍型 Portable EXE の誤検知を減らしますが、
+署名なしアプリを Smart App Control で許可する保証にはなりません。
 
 ---
 
@@ -92,9 +102,19 @@ npm run dev
 # 데스크톱 앱 개발 모드 실행
 npm run electron:dev
 
-# 데스크톱 앱 빌드 (Portable .exe)
+# 데스크톱 앱 빌드 (폴더 배포)
 npm run electron:build
 ```
+
+빌드 후 `release/win-unpacked` 폴더 전체를 다른 Windows PC에 복사하고,
+폴더 안의 `MeModify.exe`를 실행하세요. `MeModify.exe`만 꺼내거나 폴더의 DLL,
+`locales`, `resources`를 삭제하지 마세요.
+
+Smart App Control은 발행자를 확인할 수 없는 서명되지 않은 실행 파일을 차단할 수 있습니다.
+이 저장소에는 코드 서명 인증서가 포함되어 있지 않으므로, 배포 대상에서 차단되면
+공개용 인증서로 `MeModify.exe`와 함께 배포되는 DLL을 서명한 뒤 배포해야 합니다.
+폴더 배포로 변경하면 자기 압축식 Portable EXE의 오탐 가능성은 줄지만,
+서명되지 않은 앱이 Smart App Control에서 허용된다는 보장은 없습니다.
 
 ---
 

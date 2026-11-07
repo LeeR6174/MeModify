@@ -1,13 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
-import { Upload, Download, Trash2, FileText, CheckCircle2, ChevronRight, X, Copy, Check, RotateCcw, Maximize2, Minimize2, AlertCircle } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { Upload, Download, Trash2, FileText, X, Copy, Check, RotateCcw, Maximize2, Minimize2, AlertCircle } from 'lucide-react'
 import './App.css'
 
 function App() {
   const [file, setFile] = useState(null)
   const [originalLines, setOriginalLines] = useState([])
-  const [processedLines, setProcessedLines] = useState([])
   const [diffLines, setDiffLines] = useState([])
-  const [isProcessing, setIsProcessing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [copying, setCopying] = useState(false)
   const fileInputRef = useRef(null)
@@ -16,12 +14,11 @@ function App() {
   const scrollPosRef = useRef(0)
   const [isFullScreen, setIsFullScreen] = useState(false)
   
-  useEffect(() => {
-    const updatedProcessed = diffLines
+  const processedLines = useMemo(() => (
+    diffLines
       .filter(line => line.type === 'normal')
       .map(line => line.text)
-    setProcessedLines(updatedProcessed)
-  }, [diffLines])
+  ), [diffLines])
 
   useEffect(() => {
     const handleFullScreenChange = () => {
@@ -65,7 +62,6 @@ function App() {
   }
 
   const processText = (text) => {
-    setIsProcessing(true)
     const lines = text.split(/\r?\n/)
     setOriginalLines(lines)
 
@@ -105,7 +101,6 @@ function App() {
     }
 
     setDiffLines(newDiff)
-    setIsProcessing(false)
   }
 
   const handleLineEdit = (idx, newText) => {
@@ -173,7 +168,6 @@ function App() {
   const reset = () => {
     setFile(null)
     setOriginalLines([])
-    setProcessedLines([])
     setDiffLines([])
     setIsDragging(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
