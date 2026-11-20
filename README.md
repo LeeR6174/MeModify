@@ -56,19 +56,66 @@ npm run dev
 # デスクトップアプリの開発モード実行
 npm run electron:dev
 
-# デスクトップアプリのビルド（フォルダ配布）
+# デスクトップアプリのビルド（Windowsインストーラー）
 npm run electron:build
 ```
 
-ビルド後の `release/win-unpacked` フォルダ全体を別の Windows PC にコピーし、
-中にある `MeModify.exe` を実行してください。`MeModify.exe` だけを取り出したり、
-フォルダ内の DLL・`locales`・`resources` を削除したりしないでください。
+ビルド後の `release/MeModify-2.0.0-Setup-x64.exe` を実行すると、
+バージョン付きのインストール先へ MeModify をインストールできます。
+実行ファイル名とインストール先はバージョンごとに区別されるため、
+フォルダ内に複数の旧バージョンを置いても起動対象を誤る可能性を抑えられます。
+古いバージョンはアンインストールしてから更新してください。
 
-Smart App Control は、発行元が確認できない未署名の実行ファイルをブロックすることがあります。
-このリポジトリにはコード署名証明書を含めていないため、配布先でブロックされる場合は、
-公開用の証明書で `MeModify.exe` と同梱 DLL を署名してから配布してください。
-フォルダ配布への変更は自己解凍型 Portable EXE の誤検知を減らしますが、
-署名なしアプリを Smart App Control で許可する保証にはなりません。
+### 配布フォルダを受け取った場合
+
+配布フォルダは次の手順で利用できます。
+
+1. ZIP形式で受け取った場合は、フォルダごと展開します。ZIP内のファイルを個別に取り出さないでください。
+2. 展開後のフォルダまたは配布フォルダ内にある
+   `MeModify-2.0.0-Setup-x64.exe` をダブルクリックします。
+3. インストーラー画面で、インストール先とショートカット作成の設定を確認して進めます。
+4. インストール完了後はスタートメニューまたはデスクトップの `MeModify` を起動します。
+5. 配布フォルダー内の `MeModify-2.0.0-Setup-x64.exe` は、インストール後に削除してかまいません。
+
+インストーラー以外のフォルダやファイルを個別に起動する必要はありません。
+配布元から提供されたものでないフォルダや、ファイル名やハッシュが一致しないインストーラーは実行しないでください。
+
+### コード署名
+
+配布用ビルドには `.pfx/.p12` の Windows Code Signing 証明書が必要です。
+証明書は認証済みの認証局から取得してください。秘密鍵やパスワードをリポジトリに保存しないでください。
+
+PowerShellで証明書を設定し、署名済みインストーラーをビルドします。
+
+```powershell
+$env:CSC_LINK = "C:\証明書の保存先\MeModify.pfx"
+$env:CSC_KEY_PASSWORD = "証明書のパスワード"
+npm run electron:build
+Remove-Item Env:CSC_LINK
+Remove-Item Env:CSC_KEY_PASSWORD
+```
+
+証明書がない場合、ビルドは無署名インストーラーを生成せず失敗します。
+標準の証明書でも初期配布では Microsoft SmartScreen の評価期間が必要になる場合があります。
+EV コード署名証明書を利用すると、Smart App Control のブロックを回避しやすくなります。
+
+#### Smart App Controlでブロックされた場合
+
+1. 配布元に連絡し、公式の署名済みインストーラーであることを確認します。
+2. 「Windows セキュリティ」→「アプリとブラウザー コントロール」→「保護の履歴」を開き、
+   ブロックされた `MeModify-2.0.0-Setup-x64.exe` と実行時刻を確認します。
+3. 必ず発行元とハッシュを確認してください。認証済みの配布元のファイル以外は実行しないでください。
+4. 発行元が公式の場合は、ブロック画面または保護の履歴から Microsoft に誤検知として報告し、
+   配布者には証明書の有効性とファイルの Authenticode 署名を確認して再配布します。
+5. 設定の「Smart App Controlを強制モードから無効化しようとする」などの回避策は推奨しません。
+   配布者側で EV コード署名証明書または正規の署名付きビルドを使用してください。
+
+署名状態は、配布前に次のコマンドで確認できます。
+
+```powershell
+Get-AuthenticodeSignature .\release\MeModify-2.0.0-Setup-x64.exe |
+  Format-List Status, StatusMessage, SignerCertificate
+```
 
 ---
 
@@ -119,19 +166,63 @@ npm run dev
 # 데스크톱 앱 개발 모드 실행
 npm run electron:dev
 
-# 데스크톱 앱 빌드 (폴더 배포)
+# 데스크톱 앱 빌드 (Windows 설치 프로그램)
 npm run electron:build
 ```
 
-빌드 후 `release/win-unpacked` 폴더 전체를 다른 Windows PC에 복사하고,
-폴더 안의 `MeModify.exe`를 실행하세요. `MeModify.exe`만 꺼내거나 폴더의 DLL,
-`locales`, `resources`를 삭제하지 마세요.
+빌드 후 `release/MeModify-2.0.0-Setup-x64.exe`를 실행하면
+버전별 설치 위치에 MeModify가 설치됩니다.
+실행 파일 이름과 설치 위치가 버전별로 구분되므로 여러 구버전을 함께 보관해도
+실행 대상이 잘못 선택될 가능성을 줄일 수 있습니다.
+이전 버전은 제거한 후 업데이트하세요.
 
-Smart App Control은 발행자를 확인할 수 없는 서명되지 않은 실행 파일을 차단할 수 있습니다.
-이 저장소에는 코드 서명 인증서가 포함되어 있지 않으므로, 배포 대상에서 차단되면
-공개용 인증서로 `MeModify.exe`와 함께 배포되는 DLL을 서명한 뒤 배포해야 합니다.
-폴더 배포로 변경하면 자기 압축식 Portable EXE의 오탐 가능성은 줄지만,
-서명되지 않은 앱이 Smart App Control에서 허용된다는 보장은 없습니다.
+### 배포 폴더를 받은 경우
+
+배포 폴더는 다음 절차로 사용할 수 있습니다.
+
+1. ZIP 파일로 받은 경우에는 폴더 전체를 압축 해제합니다. ZIP 안의 파일을 개별로 꺼내지 마세요.
+2. 압축 해제한 폴더 또는 배포 폴더 안의
+   `MeModify-2.0.0-Setup-x64.exe`를 두 번 클릭합니다.
+3. 설치 프로그램에서 설치 위치와 바로 가기 생성 설정을 확인한 후 진행합니다.
+4. 설치가 완료되면 시작 메뉴 또는 바탕 화면의 `MeModify`를 실행합니다.
+5. 설치가 끝난 뒤에는 배포 폴더의 `MeModify-2.0.0-Setup-x64.exe`를 삭제해도 됩니다.
+
+인스톨러 이외의 폴더나 파일을 개별로 실행할 필요는 없습니다.
+배포자가 제공한 폴더가 아니거나 파일 이름이나 해시가 일치하지 않는 인스톨러는 실행하지 마세요.
+
+### 코드 서명
+
+배포용 빌드에는 `.pfx/.p12` Windows Code Signing 인증서가 필요합니다.
+인증 기관에서 인증서를 발급받은 후 다음 환경 변수를 설정하세요.
+비밀 키와 비밀번호를 저장소에 포함하지 마세요.
+
+```powershell
+$env:CSC_LINK = "C:\인증서 경로\MeModify.pfx"
+$env:CSC_KEY_PASSWORD = "인증서 비밀번호"
+npm run electron:build
+Remove-Item Env:CSC_LINK
+Remove-Item Env:CSC_KEY_PASSWORD
+```
+
+인증서가 없으면 빌드가 실패하며 서명되지 않은 설치 프로그램을 생성하지 않습니다.
+
+#### Smart App Control에서 차단된 경우
+
+1. 배포자에게 공식 서명 설치 프로그램인지 확인합니다.
+2. 「Windows 보안」→「앱 및 브라우저 컨트롤」→「보호 기록」에서 차단된
+   `MeModify-2.0.0-Setup-x64.exe`와 차단 시각을 확인합니다.
+3. 발행자와 파일 해시를 확인하세요. 신뢰할 수 있는 배포자의 파일이 아니면 실행하지 마세요.
+4. 공식 배포 파일이라면 차단 화면 또는 보호 기록을 통해 Microsoft에 오탐으로 신고하고,
+   배포자는 인증서와 Authenticode 서명을 확인한 뒤 다시 배포해야 합니다.
+5. Smart App Control을 강제로 끄는 방식은 권장하지 않습니다.
+   배포자는 EV 코드 서명 인증서 또는 정식 서명 빌드를 사용하세요.
+
+배포 전에 다음 명령으로 서명 상태를 확인할 수 있습니다.
+
+```powershell
+Get-AuthenticodeSignature .\release\MeModify-2.0.0-Setup-x64.exe |
+  Format-List Status, StatusMessage, SignerCertificate
+```
 
 ---
 

@@ -2,6 +2,12 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1100,
@@ -23,7 +29,18 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow);
+if (gotSingleInstanceLock) {
+  app.whenReady().then(createWindow);
+}
+
+app.on('second-instance', () => {
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    const win = windows[0];
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

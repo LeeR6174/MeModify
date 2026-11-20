@@ -1,7 +1,9 @@
 {
   "name": "memodify",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "Japanese and Korean subtitle editing tool",
+  "author": "LeeR6174",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -10,7 +12,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
-    "electron:build": "npm run build && electron-builder --win dir"
+    "electron:build": "node scripts/build-signed.cjs"
   },
   "dependencies": {
     "lucide-react": "^1.8.0",
@@ -46,14 +48,25 @@
     "win": {
       "target": [
         {
-          "target": "dir",
+          "target": "nsis",
           "arch": [
             "x64"
           ]
         }
       ],
-      "forceCodeSigning": false,
-      "signAndEditExecutable": false
+      "artifactName": "MeModify-${version}-Setup-${arch}.${ext}",
+      "forceCodeSigning": true,
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "MeModify ${version}",
+      "uninstallDisplayName": "MeModify ${version}",
+      "deleteAppDataOnUninstall": true
     },
     "electronLanguages": [
       "en-US",
